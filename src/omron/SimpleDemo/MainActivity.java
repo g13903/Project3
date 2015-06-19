@@ -114,14 +114,14 @@ public class MainActivity extends Activity {
                 wait(15);
 
                 while ( isExecute == EXECUTE_START ) {
-                    int nUseFunc = HVC.HVC_ACTIV_BODY_DETECTION |
-                                   HVC.HVC_ACTIV_HAND_DETECTION |
+                    int nUseFunc = //HVC.HVC_ACTIV_BODY_DETECTION |
+                                   //HVC.HVC_ACTIV_HAND_DETECTION |
                                    HVC.HVC_ACTIV_FACE_DETECTION |
                                    HVC.HVC_ACTIV_FACE_DIRECTION |
-                                   HVC.HVC_ACTIV_AGE_ESTIMATION |
-                                   HVC.HVC_ACTIV_GENDER_ESTIMATION |
-                                   HVC.HVC_ACTIV_GAZE_ESTIMATION |
-                                   HVC.HVC_ACTIV_BLINK_ESTIMATION |
+                                   //HVC.HVC_ACTIV_AGE_ESTIMATION |
+                                   //HVC.HVC_ACTIV_GENDER_ESTIMATION |
+                                   //HVC.HVC_ACTIV_GAZE_ESTIMATION |
+                                   //HVC.HVC_ACTIV_BLINK_ESTIMATION |
                                    HVC.HVC_ACTIV_EXPRESSION_ESTIMATION;
                     hvcBle.execute(nUseFunc, hvcRes);
                     wait(30);
@@ -224,7 +224,7 @@ public class MainActivity extends Activity {
                 String str = "Execute : " + String.format("ret = %d / status = 0x%02x", nRet, outStatus);
                 showToast(str);
             } else {
-                String str = "Body Detect = " + String.format("%d\n", hvcRes.body.size());
+               /* String str = "Body Detect = " + String.format("%d\n", hvcRes.body.size());
                 for (DetectionResult bodyResult : hvcRes.body) {
                     int size = bodyResult.size;
                     int posX = bodyResult.posX;
@@ -241,8 +241,8 @@ public class MainActivity extends Activity {
                     int posY = handResult.posY;
                     int conf = handResult.confidence;
                     str += String.format("  [Hand Detection] : size = %d, x = %d, y = %d, conf = %d\n", size, posX, posY, conf);
-                }
-                str += "Face Detect = " + String.format("%d\n", hvcRes.face.size());
+                }*/
+                String str = "Face Detect = " + String.format("%d\n", hvcRes.face.size());
                 
                 for (FaceResult faceResult : hvcRes.face) {
                 	/*
