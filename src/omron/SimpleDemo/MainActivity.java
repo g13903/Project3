@@ -218,6 +218,8 @@ public class MainActivity extends Activity {
 
         @Override
         public void onPostExecute(int nRet, byte outStatus) {
+        	int expression[]=new int[100];
+        	int index = 0;
             if ( nRet != HVC.HVC_NORMAL || outStatus != 0 ) {
                 String str = "Execute : " + String.format("ret = %d / status = 0x%02x", nRet, outStatus);
                 showToast(str);
@@ -241,7 +243,9 @@ public class MainActivity extends Activity {
                     str += String.format("  [Hand Detection] : size = %d, x = %d, y = %d, conf = %d\n", size, posX, posY, conf);
                 }
                 str += "Face Detect = " + String.format("%d\n", hvcRes.face.size());
+                
                 for (FaceResult faceResult : hvcRes.face) {
+                	/*
                     if ( (hvcRes.executedFunc & HVC.HVC_ACTIV_FACE_DETECTION) != 0 ) {
                         int size = faceResult.size;
                         int posX = faceResult.posX;
@@ -269,17 +273,37 @@ public class MainActivity extends Activity {
                         str += String.format("  [Blink Estimation] : ratioL = %d, ratioR = %d\n", 
                                                     faceResult.blink.ratioL, faceResult.blink.ratioR);
                     }
+                    */
                     if ( (hvcRes.executedFunc & HVC.HVC_ACTIV_EXPRESSION_ESTIMATION) != 0 ) {
                         str += String.format("  [Expression Estimation] : expression = %s, score = %d, degree = %d\n", 
-                                                    faceResult.exp.expression == HVC.HVC_EX_NEUTRAL ? "Neutral" :
-                                                    faceResult.exp.expression == HVC.HVC_EX_HAPPINESS ? "Happiness" :
-                                                    faceResult.exp.expression == HVC.HVC_EX_SURPRISE ? "Surprise" :
-                                                    faceResult.exp.expression == HVC.HVC_EX_ANGER ? "Anger" :
-                                                    faceResult.exp.expression == HVC.HVC_EX_SADNESS ? "Sadness" : "" ,
+                                                    faceResult.exp.expression == HVC.HVC_EX_NEUTRAL ? "Neutral" ://1
+                                                    faceResult.exp.expression == HVC.HVC_EX_HAPPINESS ? "Happiness" ://2
+                                                    faceResult.exp.expression == HVC.HVC_EX_SURPRISE ? "Surprise" ://3
+                                                    faceResult.exp.expression == HVC.HVC_EX_ANGER ? "Anger" ://4
+                                                    faceResult.exp.expression == HVC.HVC_EX_SADNESS ? "Sadness" : "" ,//5
                                                     faceResult.exp.score, faceResult.exp.degree);
+                       expression[index] +=HVC.HVC_EX_NEUTRAL;
+                       expression[index] +=HVC.HVC_EX_HAPPINESS;
+                       expression[index] +=HVC.HVC_EX_SURPRISE;
+                       expression[index] +=HVC.HVC_EX_ANGER;
+                       expression[index] +=HVC.HVC_EX_SADNESS;
+                       
+                    		   
                     }
+                    index++;
                 }
-                final String viewText = str;
+                String text="";
+                for(int i =1;i<index;i++){
+                       if(expression[i]!=expression[i-1]) {
+                    	   text = "表情が違います";
+                    	   break;
+                       }
+                       if(i==index-1){
+                    	   text="表情がおなじになりました";
+                       }
+                }
+                final String viewText = str+text;
+                       
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
@@ -448,4 +472,5 @@ public class MainActivity extends Activity {
         .setNegativeButton(R.string.popup_no, null)
         .show();
     }
-}
+    }
+
