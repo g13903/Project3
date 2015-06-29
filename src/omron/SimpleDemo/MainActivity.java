@@ -24,16 +24,27 @@ import android.app.DialogFragment;
 import android.bluetooth.BluetoothDevice;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.hardware.Camera;
 import android.os.Bundle;
 import android.view.LayoutInflater;
+import android.view.SurfaceView;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
+import android.view.View.OnClickListener;
+import android.view.ViewGroup.LayoutParams;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.FrameLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -46,8 +57,38 @@ import omron.HVC.HVC_RES;
 import omron.HVC.HVC_RES.DetectionResult;
 import omron.HVC.HVC_RES.FaceResult;
 import omron.HVC.HVCBleCallback;
+import android.content.Intent;
+import android.hardware.Camera;
+import android.hardware.Camera.AutoFocusCallback;
+import android.hardware.Camera.PictureCallback;
+import android.hardware.Camera.ShutterCallback;
+import android.net.Uri;
+import android.os.AsyncTask;
+import android.os.Bundle;
+import android.os.Environment;
+import android.util.Log;
+import android.view.SurfaceView;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.view.View.OnLongClickListener;
+import android.view.ViewGroup.LayoutParams;
+import android.view.Window;
+import android.view.WindowManager;
+import android.widget.Button;
+import android.widget.FrameLayout;
+import android.widget.Toast;
 
 public class MainActivity extends Activity {
+	private static final String TAG = "CamTestActivity";
+	Preview preview;
+	//Button buttonClick;
+	Camera camera;
+	Activity act;
+	Context ctx;
+	//Interface to global information about an application environment
+	//アプリの状態を受け渡すためcontextを渡している
+	//Object<-context<-ContextWraper<-ContextThemeWrapper<-Activityの継承関係
+
     public static final int EXECUTE_STOP = 0;
     public static final int EXECUTE_START = 1;
     public static final int EXECUTE_END = -1;
@@ -75,6 +116,26 @@ public class MainActivity extends Activity {
         hvcBle.setCallBack(hvcCallback);
         hvcThread = new HVCDeviceThread();
         hvcThread.start();
+        
+        ctx = this;
+		act = this;
+		requestWindowFeature(Window.FEATURE_NO_TITLE);
+		//タイトルバーの非表示
+		
+		getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+		//フルスクリーン表示
+
+		setContentView(R.layout.main);
+		//アクティビティに部品を配置
+		//「R.layout.main」はsetContentViewメソッドの引数に指定されている
+
+		preview = new Preview(this, (SurfaceView)findViewById(R.id.surfaceView));
+		preview.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
+		((FrameLayout) findViewById(R.id.layout)).addView(preview);
+		preview.setKeepScreenOn(true);
+		//おそらく画面が落ちない機能？
+
+		Toast.makeText(ctx, getString(R.string.take_photo_help), Toast.LENGTH_LONG).show();
     }
 
     @Override
@@ -224,56 +285,11 @@ public class MainActivity extends Activity {
                 String str = "Execute : " + String.format("ret = %d / status = 0x%02x", nRet, outStatus);
                 showToast(str);
             } else {
-               /* String str = "Body Detect = " + String.format("%d\n", hvcRes.body.size());
-                for (DetectionResult bodyResult : hvcRes.body) {
-                    int size = bodyResult.size;
-                    int posX = bodyResult.posX;
-                    int posY = bodyResult.posY;
-                    int conf = bodyResult.confidence;
-                    str += String.format("  [Body Detection] : size = %d, x = %d, y = %d, conf = %d\n", size, posX, posY, conf);
-                }
-                
-               
-                str += "Hand Detect = " + String.format("%d\n", hvcRes.hand.size());
-                for (DetectionResult handResult : hvcRes.hand) {
-                    int size = handResult.size;
-                    int posX = handResult.posX;
-                    int posY = handResult.posY;
-                    int conf = handResult.confidence;
-                    str += String.format("  [Hand Detection] : size = %d, x = %d, y = %d, conf = %d\n", size, posX, posY, conf);
-                }*/
+              
                 String str = "Face Detect = " + String.format("%d\n", hvcRes.face.size());
                 
                 for (FaceResult faceResult : hvcRes.face) {
-                	/*
-                    if ( (hvcRes.executedFunc & HVC.HVC_ACTIV_FACE_DETECTION) != 0 ) {
-                        int size = faceResult.size;
-                        int posX = faceResult.posX;
-                        int posY = faceResult.posY;
-                        int conf = faceResult.confidence;
-                        str += String.format("  [Face Detection] : size = %d, x = %d, y = %d, conf = %d\n", size, posX, posY, conf);
-                    }
-                    if ( (hvcRes.executedFunc & HVC.HVC_ACTIV_FACE_DIRECTION) != 0 ) {
-                        str += String.format("  [Face Direction] : yaw = %d, pitch = %d, roll = %d, conf = %d\n", 
-                                                    faceResult.dir.yaw, faceResult.dir.pitch, faceResult.dir.roll, faceResult.dir.confidence);
-                    }
-                    if ( (hvcRes.executedFunc & HVC.HVC_ACTIV_AGE_ESTIMATION) != 0 ) {
-                        str += String.format("  [Age Estimation] : age = %d, conf = %d\n", 
-                                                    faceResult.age.age, faceResult.age.confidence);
-                    }
-                    if ( (hvcRes.executedFunc & HVC.HVC_ACTIV_GENDER_ESTIMATION) != 0 ) {
-                        str += String.format("  [Gender Estimation] : gender = %s, confidence = %d\n", 
-                                                    faceResult.gen.gender == HVC.HVC_GEN_MALE ? "Male" : "Female", faceResult.gen.confidence);
-                    }
-                    if ( (hvcRes.executedFunc & HVC.HVC_ACTIV_GAZE_ESTIMATION) != 0 ) {
-                        str += String.format("  [Gaze Estimation] : LR = %d, UD = %d\n", 
-                                                    faceResult.gaze.gazeLR, faceResult.gaze.gazeUD);
-                    }
-                    if ( (hvcRes.executedFunc & HVC.HVC_ACTIV_BLINK_ESTIMATION) != 0 ) {
-                        str += String.format("  [Blink Estimation] : ratioL = %d, ratioR = %d\n", 
-                                                    faceResult.blink.ratioL, faceResult.blink.ratioR);
-                    }
-                    */
+                
                     if ( (hvcRes.executedFunc & HVC.HVC_ACTIV_EXPRESSION_ESTIMATION) != 0 ) {
                         str += String.format("  [Expression Estimation] : expression = %s, score = %d, degree = %d\n", 
                                                     faceResult.exp.expression == HVC.HVC_EX_NEUTRAL ? "Neutral" ://1
@@ -300,6 +316,7 @@ public class MainActivity extends Activity {
                        }
                        if(i==index-1){
                     	   text="表情がおなじになりました";
+                    	   camera.takePicture(shutterCallback, rawCallback, jpegCallback);
                        }
                 }
                 final String viewText = str+text;
@@ -472,5 +489,95 @@ public class MainActivity extends Activity {
         .setNegativeButton(R.string.popup_no, null)
         .show();
     }
+	@Override
+	protected void onResume() {
+		super.onResume();
+		int numCams = Camera.getNumberOfCameras();
+		if(numCams > 0){
+			try{
+				camera = Camera.open(0);
+				camera.startPreview();
+				preview.setCamera(camera);
+			} catch (RuntimeException ex){
+				Toast.makeText(ctx, getString(R.string.camera_not_found), Toast.LENGTH_LONG).show();
+			}
+		}
+	}
+
+	@Override
+	protected void onPause() {
+		if(camera != null) {
+			camera.stopPreview();
+			preview.setCamera(null);
+			camera.release();
+			camera = null;
+		}
+		super.onPause();
+	}
+
+	private void resetCam() {
+		camera.startPreview();
+		preview.setCamera(camera);
+	}
+
+	private void refreshGallery(File file) {
+		Intent mediaScanIntent = new Intent( Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
+		mediaScanIntent.setData(Uri.fromFile(file));
+		sendBroadcast(mediaScanIntent);
+	}
+
+	ShutterCallback shutterCallback = new ShutterCallback() {
+		public void onShutter() {
+			//			 Log.d(TAG, "onShutter'd");
+		}
+	};
+
+	PictureCallback rawCallback = new PictureCallback() {
+		public void onPictureTaken(byte[] data, Camera camera) {
+			//			 Log.d(TAG, "onPictureTaken - raw");
+		}
+	};
+
+	PictureCallback jpegCallback = new PictureCallback() {
+		public void onPictureTaken(byte[] data, Camera camera) {
+			new SaveImageTask().execute(data);
+			resetCam();
+			Log.d(TAG, "onPictureTaken - jpeg");
+		}
+	};
+
+	private class SaveImageTask extends AsyncTask<byte[], Void, Void> {
+
+		@Override
+		protected Void doInBackground(byte[]... data) {
+			FileOutputStream outStream = null;
+
+			// Write to SD Card
+			try {
+				File sdCard = Environment.getExternalStorageDirectory();
+				File dir = new File (sdCard.getAbsolutePath() + "/camtest");
+				dir.mkdirs();				
+
+				String fileName = String.format("%d.jpg", System.currentTimeMillis());
+				File outFile = new File(dir, fileName);
+
+				outStream = new FileOutputStream(outFile);
+				outStream.write(data[0]);
+				outStream.flush();
+				outStream.close();
+
+				Log.d(TAG, "onPictureTaken - wrote bytes: " + data.length + " to " + outFile.getAbsolutePath());
+
+				refreshGallery(outFile);
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			} finally {
+			}
+			return null;
+		}
+
+	}
     }
 
